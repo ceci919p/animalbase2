@@ -3,7 +3,6 @@
 window.addEventListener("DOMContentLoaded", start);
 
 let allAnimals = [];
-let filter = "*";
 
 // The prototype for all animals:
 const Animal = {
@@ -12,6 +11,12 @@ const Animal = {
   type: "",
   age: 0,
   star: false,
+};
+//let filterBy = "all";
+const settings = {
+  filterBy: "all",
+  sortBy: "name",
+  sortDir: "asc",
 };
 
 function start() {
@@ -26,10 +31,10 @@ function start() {
   const sortButtons = document.querySelectorAll("[data-action='sort']");
 
   //add event-listeners to filter buttons and call for the next function
-  filterButtons.forEach((knap) => knap.addEventListener("click", animalFilter));
+  filterButtons.forEach((knap) => knap.addEventListener("click", selectFilter));
 
   //add event-listeners to sorting buttons and call for the next function
-  sortButtons.forEach((knap) => knap.addEventListener("click", animalSort));
+  sortButtons.forEach((knap) => knap.addEventListener("click", selectSort));
 
   loadJSON();
 }
@@ -52,45 +57,40 @@ function isDog(animal) {
   }
 }
 
-//isStar function
 function isStar(animal) {
   return animal.star;
 }
 
-//all function
-function all() {
-  return true;
-}
-
 //------filter function
-
-function animalFilter(filteredAnimals) {
-  //let filteredAnimals;
-  //get filter depending on data-filter attribute
-  filter = this.dataset.filter;
-
-  //filter allAnimals with correct filter function  and put it into filteredAnimals
-  if (filter === "*") {
-    filteredAnimals = getFilterData(all);
-  } else if (filter === "cat") {
-    filteredAnimals = getFilterData(isCat);
-  } else if (filter === "dog") {
-    filteredAnimals = getFilterData(isDog);
-  }
-  return filteredAnimals;
+function selectFilter(event) {
+  //filter on a criteria
+  const filter = event.target.dataset.filter;
+  console.log(`User selected ${filter}`);
+  setFilter(filter);
 }
 
-function getFilterData(filterFunction) {
-  console.log("clicked");
-  //filter on a criteria
-  let filteredAnimals = allAnimals.filter(filterFunction);
+function setFilter(filter) {
+  settings.filterBy = filter;
+  console.log("setfilter");
+  buildList();
+}
 
-  return filteredAnimals;
+function animalFilter(filteredList) {
+  //let filteredList = allAnimals;
+  //get filter depending on data-filter attribute
+  //filter allAnimals with correct filter function  and put it into filteredAnimals
+  if (settings.filterBy === "cat") {
+    filteredList = allAnimals.filter(isCat);
+  } else if (settings.filterBy === "dog") {
+    filteredList = allAnimals.filter(isDog);
+  }
+  return filteredList;
+  //displayList(filteredList);
 }
 
 //-------sort function
 
-function sortByName(a, b) {
+/* function sortByName(a, b) {
   console.log("clicked");
   if (a.name < b.name) {
     return -1;
@@ -98,7 +98,6 @@ function sortByName(a, b) {
     return 1;
   }
 }
-
 function sortByType(a, b) {
   console.log("clicked");
   if (a.type < b.type) {
@@ -107,7 +106,6 @@ function sortByType(a, b) {
     return 1;
   }
 }
-
 function sortByDesc(a, b) {
   console.log("clicked");
   if (a.desc < b.desc) {
@@ -115,37 +113,49 @@ function sortByDesc(a, b) {
   } else {
     return 1;
   }
-}
+} */
 
-function sortByAge(a, b) {
-  console.log("clicked");
-  if (a.age < b.age) {
-    return -1;
+function selectSort(event) {
+  const sortBy = event.target.dataset.sort;
+  const sortDir = event.target.dataset.sortDirection;
+
+  //toggle the direction
+  if (sortDir === "asc") {
+    event.target.dataset.sortDirection = "desc";
   } else {
-    return 1;
-  }
-}
-
-function animalSort() {
-  console.log("animals sort");
-  const sortBy = this.dataset.sort;
-  sortedAnimals(sortBy);
-}
-
-function sortedAnimals(sortBy) {
-  let sortedList;
-
-  if (sortBy === "name") {
-    sortedList = allAnimals.sort(sortByName);
-  } else if (sortBy === "type") {
-    sortedList = allAnimals.sort(sortByType);
-  } else if (sortBy === "desc") {
-    sortedList = allAnimals.sort(sortByDesc);
-  } else if (sortBy === "age") {
-    sortedList = allAnimals.sort(sortByAge);
+    event.target.dataset.sortDirection = "asc";
   }
 
-  displayList(sortedList);
+  setSort(sortBy, sortDir);
+}
+
+function setSort(sortBy, sortDir) {
+  settings.sortBy = sortBy;
+  settings.sortDir = sortDir;
+  buildList();
+}
+
+function sortedAnimals(sortedList) {
+  //let sortedList = allAnimals;
+  let direction = 1;
+  if (settings.sortDir === "desc") {
+    direction = -1;
+  } else {
+    settings.direction = 1;
+  }
+
+  sortedList = sortedList.sort(sortByProperty);
+
+  function sortByProperty(a, b) {
+    console.log("clicked");
+    if (a[settings.sortBy] < b[settings.sortBy]) {
+      return -1 * direction;
+    } else {
+      return 1 * direction;
+    }
+  }
+
+  return sortedList;
 }
 
 async function loadJSON() {
@@ -160,7 +170,7 @@ function prepareObjects(jsonData) {
   allAnimals = jsonData.map(createAnimal);
 
   // TODO: This might not be the function we want to call first
-  displayList(allAnimals);
+  buildList();
 }
 
 function createAnimal(jsonObject) {
@@ -177,17 +187,18 @@ function createAnimal(jsonObject) {
 
 function buildList() {
   const currentList = animalFilter(allAnimals);
-  const sortedList = sortList(currentList);
+  console.log(currentList);
+  const sortedList = sortedAnimals(currentList);
 
   displayList(sortedList);
 }
 
-function displayList(filteredAnimals) {
+function displayList(animals) {
   // clear the list
   document.querySelector("#list tbody").innerHTML = "";
 
   // build a new list
-  filteredAnimals.forEach((animal) => displayAnimal(animal));
+  animals.forEach(displayAnimal);
 }
 
 function displayAnimal(animal) {
@@ -211,6 +222,7 @@ function displayAnimal(animal) {
   clone.querySelector("[data-field=star]").addEventListener("click", clickStar);
 
   function clickStar() {
+    console.log("starClick");
     if (animal.star === true) {
       animal.star = false;
     } else {
